@@ -16,7 +16,6 @@
 package machine
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -54,6 +53,7 @@ var (
 	machineArch        = getMachineArch()
 	maxFreqFile        = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
 	vmstatFile         = "/proc/vmstat"
+
 )
 
 const sysFsCPUCoreID = "core_id"
@@ -122,44 +122,6 @@ func GetClockSpeed(procInfo []byte) (uint64, error) {
 	}
 	// Convert to kHz
 	return uint64(speed * 1000), nil
-}
-
-func GetVMStats(vmStatMetrics *string) (map[string]int, error) {
-	vmstatRegexp, err := regexp.Compile(*vmStatMetrics)
-	if err != nil {
-		return nil, fmt.Errorf("failed to compile vmstat regexp: %v", err)
-	}
-
-	stats := make(map[string]int)
-	file, err := os.Open(vmstatFile)
-	if err != nil {
-		return nil, fmt.Errorf("cannot open %s", vmstatFile)
-	}
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		splittedLine := strings.SplitN(scanner.Text(), " ", 3)
-		if len(splittedLine) < 2 {
-			klog.Infof("cannot parse vmstat's metric: %s. Skipping", scanner.Text())
-			continue
-		}
-		match := vmstatRegexp.MatchString(splittedLine[0])
-		if !match {
-			continue
-		}
-		value, err := strconv.Atoi(splittedLine[1])
-		if err != nil {
-			klog.Infof("cannot parse vmstat's %s; %v. Skipping", splittedLine[0], err)
-			continue
-		}
-		stats[splittedLine[0]] = value
-
-	}
-	if len(stats) == 0 {
-		return nil, fmt.Errorf("no vmstat metrics found")
-	}
-	return stats, nil
-
 }
 
 // GetMachineMemoryCapacity returns the machine's total memory from /proc/meminfo.

@@ -44,6 +44,7 @@ type Node struct {
 	HugePages []HugePagesInfo `json:"hugepages"`
 	Cores     []Core          `json:"cores"`
 	Caches    []Cache         `json:"caches"`
+	VmStat    map[string]int  `json:"vmstat"`
 }
 
 type Core struct {

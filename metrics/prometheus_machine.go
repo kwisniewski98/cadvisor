@@ -206,12 +206,34 @@ func NewPrometheusMachineCollector(i infoProvider, includedMetrics container.Met
 						labels:    []string{key},
 						timestamp: machineInfo.Timestamp,
 					})
+
 				}
 				return values
 			},
 		},
 		}...)
 	}
+	c.machineMetrics = append(c.machineMetrics, []machineMetric{
+		{
+			name:        "machine_numa_vmstat",
+			help:        "Virtual memory statistics splitted per NUMA node",
+			valueType:   prometheus.UntypedValue,
+			extraLabels: []string{"stat", "node"},
+			getValues: func(machineInfo *info.MachineInfo) metricValues {
+				values := metricValues{}
+				for _, node := range machineInfo.Topology {
+					for statName, statValue := range node.VmStat {
+						values = append(values, metricValue{
+							value:  float64(statValue),
+							labels: []string{statName, strconv.Itoa(node.Id)},
+
+							timestamp: machineInfo.Timestamp,
+						})
+					}
+				}
+				return values
+			},
+		}}...)
 	return c
 
 }

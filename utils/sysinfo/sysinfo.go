@@ -15,6 +15,8 @@
 package sysinfo
 
 import (
+	"bufio"
+	"flag"
 	"fmt"
 	"os"
 	"regexp"
@@ -33,7 +35,8 @@ var (
 	cpuDirRegExp         = regexp.MustCompile(`/cpu(\d+)`)
 	memoryCapacityRegexp = regexp.MustCompile(`MemTotal:\s*([0-9]+) kB`)
 
-	cpusPath = "/sys/devices/system/cpu"
+	cpusPath          = "/sys/devices/system/cpu"
+	numaVmStatMetrics = flag.String("numa_vmstat_metrics", ".*", "Regular expression to filter numa vmstat metrics.")
 )
 
 const (
@@ -242,7 +245,11 @@ func GetNodesInfo(sysFs sysfs.SysFs) ([]info.Node, int, error) {
 		if err != nil {
 			return nil, 0, err
 		}
-
+		vmstatDirectory := sysFs.GetNumaVmStatPath(nodeDir)
+		node.VmStat, err = GetVMStats(numaVmStatMetrics, vmstatDirectory)
+		if err != nil {
+			return nil, 0, err
+		}
 		nodes = append(nodes, node)
 	}
 	return nodes, allLogicalCoresCount, err
@@ -522,4 +529,40 @@ func GetSocketFromCPU(topology []info.Node, cpu int) int {
 		}
 	}
 	return -1
+}
+
+func GetVMStats(vmStatMetrics *string, vmStatFile string) (map[string]int, error) {
+	vmstatRegexp, err := regexp.Compile(*vmStatMetrics)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile vmstat regexp: %v", err)
+	}
+
+	stats := make(map[string]int)
+	file, err := os.Open(vmStatFile)
+	if err != nil {
+		return nil, fmt.Errorf("cannot open %s", vmStatFile)
+	}
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		splittedLine := strings.SplitN(scanner.Text(), " ", 3)
+		if len(splittedLine) < 2 {
+			klog.Infof("cannot parse vmstat's metric: %s. Skipping", scanner.Text())
+			continue
+		}
+		match := vmstatRegexp.MatchString(splittedLine[0])
+		if !match {
+			continue
+		}
+		value, err := strconv.Atoi(splittedLine[1])
+		if err != nil {
+			klog.Infof("cannot parse vmstat's %s; %v. Skipping", splittedLine[0], err)
+			continue
+		}
+		stats[splittedLine[0]] = value
+	}
+	if len(stats) == 0 {
+		return nil, fmt.Errorf("no vmstat metrics found")
+	}
+	return stats, nil
 }
