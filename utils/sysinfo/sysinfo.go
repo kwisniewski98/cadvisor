@@ -245,7 +245,7 @@ func GetNodesInfo(sysFs sysfs.SysFs) ([]info.Node, int, error) {
 		if err != nil {
 			return nil, 0, err
 		}
-		vmstatDirectory := sysFs.GetNumaVmStatPath(nodeDir)
+		vmstatDirectory := fmt.Sprintf("%s/%s", nodeDir, hugepagesDir)
 		node.VmStat, err = GetVMStats(numaVmStatMetrics, vmstatDirectory)
 		if err != nil {
 			return nil, 0, err
