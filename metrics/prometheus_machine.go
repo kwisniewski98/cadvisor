@@ -192,6 +192,28 @@ func NewPrometheusMachineCollector(i infoProvider, includedMetrics container.Met
 			},
 		}...)
 	}
+	if includedMetrics.Has(container.NumaVmStatMetrics) {
+		c.machineMetrics = append(c.machineMetrics, machineMetric{
+			name:        "machine_numa_vmstat",
+			help:        "Virtual memory statistics splitted per NUMA node",
+			valueType:   prometheus.UntypedValue,
+			extraLabels: []string{"stat", "numa"},
+			getValues: func(machineInfo *info.MachineInfo) metricValues {
+				values := metricValues{}
+				for _, stat := range machineInfo.VmStatsPerNuma {
+					for statName, statValue := range stat.Stats {
+						values = append(values, metricValue{
+							value:  float64(statValue),
+							labels: []string{statName, stat.Node},
+
+							timestamp: machineInfo.Timestamp,
+						})
+					}
+				}
+				return values
+			},
+		})
+	}
 	return c
 }
 

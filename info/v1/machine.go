@@ -171,6 +171,12 @@ const (
 	UnNamedInstance InstanceID = "None"
 )
 
+type VmStatNuma struct {
+	Node string `json:"node"`
+
+	Stats map[string]int `json:"stats"`
+}
+
 type MachineInfo struct {
 	// The time of this information point.
 	Timestamp time.Time `json:"timestamp"`
@@ -228,6 +234,8 @@ type MachineInfo struct {
 
 	// ID of cloud instance (e.g. instance-1) given to it by the cloud provider.
 	InstanceID InstanceID `json:"instance_id"`
+
+	VmStatsPerNuma []VmStatNuma `json:"vmstats_per_numa"`
 }
 
 func (m *MachineInfo) Clone() *MachineInfo {
@@ -265,6 +273,7 @@ func (m *MachineInfo) Clone() *MachineInfo {
 		CloudProvider:    m.CloudProvider,
 		InstanceType:     m.InstanceType,
 		InstanceID:       m.InstanceID,
+		VmStatsPerNuma:   m.VmStatsPerNuma,
 	}
 	return &copy
 }

@@ -16,6 +16,7 @@
 package machine
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -52,6 +53,8 @@ var (
 	isDimm             = regexp.MustCompile("dimm[0-9]+")
 	machineArch        = getMachineArch()
 	maxFreqFile        = "/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq"
+	numaVmStatFiles    = "/sys/devices/system/node/node[0-9]*/vmstat"
+	numaNumberRegexp   = regexp.MustCompile(`node(\d+)`)
 )
 
 const sysFsCPUCoreID = "core_id"
@@ -120,6 +123,60 @@ func GetClockSpeed(procInfo []byte) (uint64, error) {
 	}
 	// Convert to kHz
 	return uint64(speed * 1000), nil
+}
+
+func GetVmStatPerNuma(vmStatMetrics *string) ([]info.VmStatNuma, error) {
+	files, err := filepath.Glob(numaVmStatFiles)
+	if err != nil {
+		return nil, fmt.Errorf("could not find numa vmstat files: %v", err)
+	}
+
+	vmstatRegexp, err := regexp.Compile(*vmStatMetrics)
+	if err != nil {
+		return nil, fmt.Errorf("could not compile numa vmstat regexp: %v", err)
+	}
+
+	var stats []info.VmStatNuma
+	for _, filePath := range files {
+		numaStats := make(map[string]int)
+		file, err := os.Open(filePath)
+		if err != nil {
+			return nil, fmt.Errorf("cannot open %s", filePath)
+		}
+		splittedFilePath := strings.SplitN(filePath, "/", 7)
+		numaNumber := numaNumberRegexp.FindStringSubmatch(splittedFilePath[len(splittedFilePath)-2])
+		if len(numaNumber) > 2 {
+			return nil, fmt.Errorf("cannot parse numa number")
+		}
+		scanner := bufio.NewScanner(file)
+
+		for scanner.Scan() {
+			splittedLine := strings.SplitN(scanner.Text(), " ", 2)
+			if len(splittedLine) != 2 {
+				klog.Info("cannot parse numa vmstat's metric. Skipping")
+				continue
+			}
+			if vmstatRegexp != nil {
+				match := vmstatRegexp.MatchString(splittedLine[0])
+				if !match {
+					continue
+				}
+			}
+			value, err := strconv.Atoi(splittedLine[1])
+			if err != nil {
+				klog.Infof("cannot parse numa vmstat's %s. Skipping", splittedLine[0])
+				continue
+			}
+			numaStats[splittedLine[0]] = value
+
+		}
+		stats = append(stats, info.VmStatNuma{
+			Node:  numaNumber[1],
+			Stats: numaStats,
+		})
+
+	}
+	return stats, nil
 }
 
 // GetMachineMemoryCapacity returns the machine's total memory from /proc/meminfo.

@@ -40,6 +40,8 @@ const memoryControllerPath = "/sys/devices/system/edac/mc/"
 var machineIDFilePath = flag.String("machine_id_file", "/etc/machine-id,/var/lib/dbus/machine-id", "Comma-separated list of files to check for machine-id. Use the first one that exists.")
 var bootIDFilePath = flag.String("boot_id_file", "/proc/sys/kernel/random/boot_id", "Comma-separated list of files to check for boot-id. Use the first one that exists.")
 
+var numaVmStatMetrics = flag.String("numa_vmstat_metrics", ".*", "Regular expression to filter numa vmstat metrics.")
+
 func getInfoFromFiles(filePaths string) string {
 	if len(filePaths) == 0 {
 		return ""
@@ -113,6 +115,10 @@ func Info(sysFs sysfs.SysFs, fsInfo fs.FsInfo, inHostNamespace bool) (*info.Mach
 	if err != nil {
 		klog.Errorf("Failed to get system UUID: %v", err)
 	}
+	numaVmStatInfo, err := GetVmStatPerNuma(numaVmStatMetrics)
+	if err != nil {
+		klog.Errorf("Failed to get numa vmstat metrics: %v", err)
+	}
 
 	realCloudInfo := cloudinfo.NewRealCloudInfo()
 	cloudProvider := realCloudInfo.GetCloudProvider()
@@ -138,6 +144,7 @@ func Info(sysFs sysfs.SysFs, fsInfo fs.FsInfo, inHostNamespace bool) (*info.Mach
 		CloudProvider:    cloudProvider,
 		InstanceType:     instanceType,
 		InstanceID:       instanceID,
+		VmStatsPerNuma:   numaVmStatInfo,
 	}
 
 	for i := range filesystems {

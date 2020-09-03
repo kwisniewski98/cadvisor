@@ -121,6 +121,15 @@ cAdvisor stores the latest historical data in memory. How long of a history it s
 --prometheus_endpoint="/metrics": Endpoint to expose Prometheus metrics on (default "/metrics")
 ```
 
+### Numa Vmstat Metrics
+Regular expression can be applied to choose, which metrics expose: 
+```
+-vmstats_metrics: Regular expression to filter /proc/vmstat metrics. (default ".*")
+```
+I.e. `-vmstat_metrics="workingset.*"` will show only metrics starting with workingset word.
+`.*` will show all of them.
+
+Metrics will be exposed in prometheus as `machine_numa_vmstat`
 ## Storage Drivers
 
 ```
