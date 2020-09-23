@@ -184,35 +184,20 @@ func (c *collector) setup() error {
 	c.cpuFilesLock.Lock()
 	defer c.cpuFilesLock.Unlock()
 	cgroupFd := int(cgroup.Fd())
-	for i, group := range c.events.Core.Events {
+	i := 0
+	for _, group := range c.events.Core.Events {
 		// CPUs file descriptors of group leader needed for perf_event_open.
 		leaderFileDescriptors := make(map[int]int, len(c.onlineCPUs))
 		for _, cpu := range c.onlineCPUs {
 			leaderFileDescriptors[cpu] = groupLeaderFileDescriptor
 		}
 
-		for j, event := range group.events {
-			// First element is group leader.
-			isGroupLeader := j == 0
-			customEvent, ok := c.eventToCustomEvent[event]
-			if ok {
-				config := c.createConfigFromRawEvent(customEvent)
-				leaderFileDescriptors, err = c.registerEvent(eventInfo{string(customEvent.Name), config, cgroupFd, i, isGroupLeader}, leaderFileDescriptors)
-				if err != nil {
-					return err
-				}
-			} else {
-				config, err := c.createConfigFromEvent(event)
-				if err != nil {
-					return err
-				}
-				leaderFileDescriptors, err = c.registerEvent(eventInfo{string(event), config, cgroupFd, i, isGroupLeader}, leaderFileDescriptors)
-				if err != nil {
-					return err
-				}
-				// Clean memory allocated by C code.
-				C.free(unsafe.Pointer(config))
-			}
+		leaderFileDescriptors, err := c.createLeaderFileDescriptors(group.events, cgroupFd, i, leaderFileDescriptors)
+		if err != nil {
+			klog.Errorf("%v", err)
+			continue
+		} else {
+			i++
 		}
 
 		// Group is prepared so we should reset and enable counting.
@@ -229,6 +214,35 @@ func (c *collector) setup() error {
 	}
 
 	return nil
+}
+
+func (c *collector) createLeaderFileDescriptors(events []Event, cgroupFd int, groupIndex int, leaderFileDescriptors map[int]int) (map[int]int, error) {
+	for j, event := range events {
+		// First element is group leader.
+		isGroupLeader := j == 0
+		customEvent, ok := c.eventToCustomEvent[event]
+		var err error
+		if ok {
+			config := c.createConfigFromRawEvent(customEvent)
+			leaderFileDescriptors, err = c.registerEvent(eventInfo{string(customEvent.Name), config, cgroupFd, groupIndex, isGroupLeader}, leaderFileDescriptors)
+			if err != nil {
+				return nil, fmt.Errorf("Unable to register perf event %v", err)
+			}
+		} else {
+			config, err := c.createConfigFromEvent(event)
+			if err != nil {
+				return nil, fmt.Errorf("Unable create config from perf event %v", err)
+
+			}
+			leaderFileDescriptors, err = c.registerEvent(eventInfo{string(event), config, cgroupFd, groupIndex, isGroupLeader}, leaderFileDescriptors)
+			if err != nil {
+				return nil, fmt.Errorf("Unable to register perf event %v", err)
+			}
+			// Clean memory allocated by C code.
+			C.free(unsafe.Pointer(config))
+		}
+	}
+	return leaderFileDescriptors, nil
 }
 
 func readPerfEventAttr(name string) (*unix.PerfEventAttr, error) {
@@ -271,11 +285,11 @@ func (c *collector) registerEvent(event eventInfo, leaderFileDescriptors map[int
 	for _, cpu := range c.onlineCPUs {
 		fd, err := unix.PerfEventOpen(event.config, pid, cpu, leaderFileDescriptors[cpu], flags)
 		if err != nil {
-			return nil, fmt.Errorf("setting up perf event %#v failed: %q", event.config, err)
+			return leaderFileDescriptors, fmt.Errorf("setting up perf event %#v failed: %q", event.config, err)
 		}
 		perfFile := os.NewFile(uintptr(fd), event.name)
 		if perfFile == nil {
-			return nil, fmt.Errorf("unable to create os.File from file descriptor %#v", fd)
+			return leaderFileDescriptors, fmt.Errorf("unable to create os.File from file descriptor %#v", fd)
 		}
 
 		c.addEventFile(event.groupIndex, event.name, cpu, perfFile)

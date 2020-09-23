@@ -202,7 +202,7 @@ func (c *uncoreCollector) setup(events PerfEvents, devicesPath string) error {
 			}
 
 			if err != nil {
-				return err
+				klog.Errorf("%v", err)
 			}
 		}
 
