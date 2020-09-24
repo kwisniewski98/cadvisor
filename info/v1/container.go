@@ -922,6 +922,12 @@ type ProcessStats struct {
 	Ulimits []UlimitSpec `json:"ulimits,omitempty"`
 }
 
+type PerfError struct {
+	EventName string `json:"event_name"`
+	Action    string `json:"action"`
+	ErrorCode int    `json:"error_code"`
+}
+
 type Perf struct {
 	// Statistics originating from perf events
 	PerfStats []PerfStat `json:"perf_stats,omitempty"`

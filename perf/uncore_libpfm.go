@@ -130,6 +130,7 @@ type uncoreCollector struct {
 	events             []Group
 	eventToCustomEvent map[Event]*CustomEvent
 	cpuToSocket        map[int]int
+	eventErrors        []info.PerfError
 
 	// Handle for mocking purposes.
 	perfEventOpen func(attr *unix.PerfEventAttr, pid int, cpu int, groupFd int, flags int) (fd int, err error)
@@ -147,6 +148,7 @@ func NewUncoreCollector(cgroupPath string, events PerfEvents, cpuToSocket map[in
 		cpuToSocket:   cpuToSocket,
 		perfEventOpen: unix.PerfEventOpen,
 		ioctlSetInt:   unix.IoctlSetInt,
+		eventErrors:   []info.PerfError{},
 	}
 
 	err := collector.setup(events, systemDevicesPath)
@@ -366,9 +368,14 @@ func (c *uncoreCollector) setupEvent(name string, pmus uncorePMUs, groupIndex in
 
 	klog.V(5).Infof("Setting up uncore perf event %s", name)
 
-	config, err := readPerfEventAttr(name)
+	config, err, errorCode := readPerfEventAttr(name)
 	if err != nil {
 		C.free((unsafe.Pointer)(config))
+		c.eventErrors = append(c.eventErrors, info.PerfError{
+			EventName: name,
+			Action:    "pfm_get_os_event_encoding",
+			ErrorCode: errorCode,
+		})
 		return err
 	}
 
@@ -396,6 +403,12 @@ func (c *uncoreCollector) registerEvent(eventInfo eventInfo, pmu pmu, leaderFile
 		groupFd, flags := leaderFileDescriptors[cpu], 0
 		fd, err := c.perfEventOpen(eventInfo.config, eventInfo.pid, int(cpu), groupFd, flags)
 		if err != nil {
+			errorCode, _ := strconv.Atoi(fmt.Sprintf("%s", err))
+			c.eventErrors = append(c.eventErrors, info.PerfError{
+				EventName: eventInfo.name,
+				Action:    "perf_event_open",
+				ErrorCode: errorCode,
+			})
 			return nil, fmt.Errorf("setting up perf event %#v failed: %q | (pmu: %q, groupFd: %d, cpu: %d)", eventInfo.config, err, pmu, groupFd, cpu)
 		}
 		perfFile := os.NewFile(uintptr(fd), eventInfo.name)
