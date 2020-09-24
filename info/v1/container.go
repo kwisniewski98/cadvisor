@@ -921,7 +921,6 @@ type ProcessStats struct {
 	// Ulimits for the top-level container process
 	Ulimits []UlimitSpec `json:"ulimits,omitempty"`
 }
-
 type PerfError struct {
 	EventName string `json:"event_name"`
 	Action    string `json:"action"`

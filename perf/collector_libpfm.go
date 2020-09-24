@@ -28,6 +28,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 	"unsafe"
 
@@ -46,6 +47,7 @@ type collector struct {
 	onlineCPUs         []int
 	eventToCustomEvent map[Event]*CustomEvent
 	uncore             stats.Collector
+	eventErrors        []info.PerfError
 }
 
 type group struct {
@@ -75,7 +77,14 @@ func init() {
 }
 
 func newCollector(cgroupPath string, events PerfEvents, onlineCPUs []int, cpuToSocket map[int]int) *collector {
-	collector := &collector{cgroupPath: cgroupPath, events: events, onlineCPUs: onlineCPUs, cpuFiles: map[int]group{}, uncore: NewUncoreCollector(cgroupPath, events, cpuToSocket)}
+	collector := &collector{
+		cgroupPath:  cgroupPath,
+		events:      events,
+		onlineCPUs:  onlineCPUs,
+		cpuFiles:    map[int]group{},
+		uncore:      NewUncoreCollector(cgroupPath, events, cpuToSocket),
+		eventErrors: []info.PerfError{},
+	}
 	mapEventsToCustomEvents(collector)
 	return collector
 }
@@ -231,7 +240,7 @@ func (c *collector) createLeaderFileDescriptors(events []Event, cgroupFd int, gr
 		} else {
 			config, err := c.createConfigFromEvent(event)
 			if err != nil {
-				return nil, fmt.Errorf("Unable create config from perf event %v", err)
+				return nil, fmt.Errorf("Unable to create config from perf event %v", err)
 
 			}
 			leaderFileDescriptors, err = c.registerEvent(eventInfo{string(event), config, cgroupFd, groupIndex, isGroupLeader}, leaderFileDescriptors)
@@ -245,7 +254,7 @@ func (c *collector) createLeaderFileDescriptors(events []Event, cgroupFd int, gr
 	return leaderFileDescriptors, nil
 }
 
-func readPerfEventAttr(name string) (*unix.PerfEventAttr, error) {
+func readPerfEventAttr(name string) (*unix.PerfEventAttr, error, int) {
 	perfEventAttrMemory := C.malloc(C.ulong(unsafe.Sizeof(unix.PerfEventAttr{})))
 	event := pfmPerfEncodeArgT{}
 	fstr := C.CString("")
@@ -284,6 +293,12 @@ func (c *collector) registerEvent(event eventInfo, leaderFileDescriptors map[int
 	for _, cpu := range c.onlineCPUs {
 		fd, err := unix.PerfEventOpen(event.config, pid, cpu, leaderFileDescriptors[cpu], flags)
 		if err != nil {
+			errorCode, _ := strconv.Atoi(fmt.Sprintf("%s", err))
+			c.eventErrors = append(c.eventErrors, info.PerfError{
+				EventName: event.name,
+				Action:    "perf_event_open",
+				ErrorCode: errorCode,
+			})
 			return leaderFileDescriptors, fmt.Errorf("setting up perf event %#v failed: %q", event.config, err)
 		}
 		perfFile := os.NewFile(uintptr(fd), event.name)
@@ -422,9 +437,14 @@ func (c *collector) createConfigFromRawEvent(event *CustomEvent) *unix.PerfEvent
 func (c *collector) createConfigFromEvent(event Event) (*unix.PerfEventAttr, error) {
 	klog.V(5).Infof("Setting up perf event %s", string(event))
 
-	config, err := readPerfEventAttr(string(event))
+	config, err, errorCode := readPerfEventAttr(string(event))
 	if err != nil {
 		C.free((unsafe.Pointer)(config))
+		c.eventErrors = append(c.eventErrors, info.PerfError{
+			EventName: string(event),
+			Action:    "pfm_get_os_event_encoding",
+			ErrorCode: errorCode,
+		})
 		return nil, err
 	}
 

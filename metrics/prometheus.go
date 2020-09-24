@@ -1653,6 +1653,23 @@ func NewPrometheusCollector(i infoProvider, f ContainerLabelsFunc, includedMetri
 					return values
 				},
 			},
+			{
+				name:        "container_perf_event_errors",
+				help:        "Perf event errors.",
+				valueType:   prometheus.GaugeValue,
+				extraLabels: []string{"action", "event"},
+				getValues: func(s *info.ContainerStats) metricValues {
+					values := make(metricValues, 0, len(s.Perf.PerfErrors))
+					for _, err := range s.Perf.PerfErrors {
+						values = append(values, metricValue{
+							value:     float64(err.ErrorCode),
+							labels:    []string{err.Action, err.EventName},
+							timestamp: s.Timestamp,
+						})
+					}
+					return values
+				},
+			},
 		}...)
 	}
 	if includedMetrics.Has(container.ReferencedMemoryMetrics) {
