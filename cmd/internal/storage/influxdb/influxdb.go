@@ -325,7 +325,7 @@ func (s *influxdbStorage) perfStatsToPoints(
 	stats *info.ContainerStats,
 ) (points []*influxdb.Point) {
 
-	for _, perfStat := range stats.PerfStats {
+	for _, perfStat := range stats.Perf.PerfStats {
 		point := makePoint(serPerfStat, perfStat.Value)
 		tags := map[string]string{
 			"cpu":           fmt.Sprintf("%v", perfStat.Cpu),

@@ -110,9 +110,9 @@ func TestCollector_UpdateStats(t *testing.T) {
 	err = collector.UpdateStats(stats)
 
 	assert.NoError(t, err)
-	assert.Len(t, stats.PerfStats, 4)
+	assert.Len(t, stats.Perf.PerfStats, 4)
 
-	assert.Contains(t, stats.PerfStats, info.PerfStat{
+	assert.Contains(t, stats.Perf.PerfStats, info.PerfStat{
 		PerfValue: info.PerfValue{
 			ScalingRatio: 0.3333333333333333,
 			Value:        999999999,
@@ -120,7 +120,7 @@ func TestCollector_UpdateStats(t *testing.T) {
 		},
 		Cpu: 11,
 	})
-	assert.Contains(t, stats.PerfStats, info.PerfStat{
+	assert.Contains(t, stats.Perf.PerfStats, info.PerfStat{
 		PerfValue: info.PerfValue{
 			ScalingRatio: 1,
 			Value:        123456789,
@@ -128,7 +128,7 @@ func TestCollector_UpdateStats(t *testing.T) {
 		},
 		Cpu: 0,
 	})
-	assert.Contains(t, stats.PerfStats, info.PerfStat{
+	assert.Contains(t, stats.Perf.PerfStats, info.PerfStat{
 		PerfValue: info.PerfValue{
 			ScalingRatio: 1.0,
 			Value:        123456,
@@ -136,7 +136,7 @@ func TestCollector_UpdateStats(t *testing.T) {
 		},
 		Cpu: 0,
 	})
-	assert.Contains(t, stats.PerfStats, info.PerfStat{
+	assert.Contains(t, stats.Perf.PerfStats, info.PerfStat{
 		PerfValue: info.PerfValue{
 			ScalingRatio: 1.0,
 			Value:        654321,

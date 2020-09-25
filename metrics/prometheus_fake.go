@@ -633,58 +633,60 @@ func (p testSubcontainersInfoProvider) GetRequestedContainersInfo(string, v2.Req
 							},
 						},
 					},
-					PerfStats: []info.PerfStat{
-						{
-							PerfValue: info.PerfValue{
-								ScalingRatio: 1.0,
-								Value:        123,
-								Name:         "instructions",
+					Perf: info.Perf{
+						PerfStats: []info.PerfStat{
+							{
+								PerfValue: info.PerfValue{
+									ScalingRatio: 1.0,
+									Value:        123,
+									Name:         "instructions",
+								},
+								Cpu: 0,
 							},
-							Cpu: 0,
+							{
+								PerfValue: info.PerfValue{
+									ScalingRatio: 0.5,
+									Value:        456,
+									Name:         "instructions",
+								},
+								Cpu: 1,
+							},
+							{
+								PerfValue: info.PerfValue{
+									ScalingRatio: 0.66666666666,
+									Value:        321,
+									Name:         "instructions_retired",
+								},
+								Cpu: 0,
+							},
+							{
+								PerfValue: info.PerfValue{
+									ScalingRatio: 0.33333333333,
+									Value:        789,
+									Name:         "instructions_retired",
+								},
+								Cpu: 1,
+							},
 						},
-						{
-							PerfValue: info.PerfValue{
-								ScalingRatio: 0.5,
-								Value:        456,
-								Name:         "instructions",
+						PerfUncoreStats: []info.PerfUncoreStat{
+							{
+								PerfValue: info.PerfValue{
+									ScalingRatio: 1.0,
+									Value:        1231231512.0,
+									Name:         "cas_count_read",
+								},
+								Socket: 0,
+								PMU:    "uncore_imc_0",
 							},
-							Cpu: 1,
-						},
-						{
-							PerfValue: info.PerfValue{
-								ScalingRatio: 0.66666666666,
-								Value:        321,
-								Name:         "instructions_retired",
+							{
+								PerfValue: info.PerfValue{
+									ScalingRatio: 1.0,
+									Value:        1111231331.0,
+									Name:         "cas_count_read",
+								},
+								Socket: 1,
+								PMU:    "uncore_imc_0",
 							},
-							Cpu: 0,
-						},
-						{
-							PerfValue: info.PerfValue{
-								ScalingRatio: 0.33333333333,
-								Value:        789,
-								Name:         "instructions_retired",
-							},
-							Cpu: 1,
-						},
-					},
-					PerfUncoreStats: []info.PerfUncoreStat{
-						{
-							PerfValue: info.PerfValue{
-								ScalingRatio: 1.0,
-								Value:        1231231512.0,
-								Name:         "cas_count_read",
-							},
-							Socket: 0,
-							PMU:    "uncore_imc_0",
-						},
-						{
-							PerfValue: info.PerfValue{
-								ScalingRatio: 1.0,
-								Value:        1111231331.0,
-								Name:         "cas_count_read",
-							},
-							Socket: 1,
-							PMU:    "uncore_imc_0",
 						},
 					},
 					ReferencedMemory: 1234,
