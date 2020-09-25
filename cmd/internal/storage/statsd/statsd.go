@@ -178,7 +178,7 @@ func (s *statsdStorage) hugetlbStatsToValues(series *map[string]uint64, stats *i
 }
 
 func (s *statsdStorage) perfStatsToValues(series *map[string]uint64, stats *info.ContainerStats) {
-	for _, perfStat := range stats.PerfStats {
+	for _, perfStat := range stats.Perf.PerfStats {
 		(*series)[serPerfStat+"."+perfStat.Name+"."+strconv.Itoa(perfStat.Cpu)] = perfStat.Value
 	}
 }

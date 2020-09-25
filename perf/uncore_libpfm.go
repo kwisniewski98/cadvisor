@@ -352,11 +352,10 @@ func (c *uncoreCollector) UpdateStats(stats *info.ContainerStats) error {
 					continue
 				}
 
-				stats.PerfUncoreStats = append(stats.PerfUncoreStats, stat...)
+				stats.Perf.PerfUncoreStats = append(stats.Perf.PerfUncoreStats, stat...)
 			}
 		}
 	}
-
 	return nil
 }
 
