@@ -94,7 +94,7 @@ func TestPrometheusCollector_scrapeFailure(t *testing.T) {
 
 func TestNewPrometheusCollectorWithPerf(t *testing.T) {
 	c := NewPrometheusCollector(&mockInfoProvider{}, mockLabelFunc, container.MetricSet{container.PerfMetrics: struct{}{}}, now, v2.RequestOptions{})
-	assert.Len(t, c.containerMetrics, 5)
+	assert.Len(t, c.containerMetrics, 6)
 	names := []string{}
 	for _, m := range c.containerMetrics {
 		names = append(names, m.name)
@@ -104,6 +104,8 @@ func TestNewPrometheusCollectorWithPerf(t *testing.T) {
 	assert.Contains(t, names, "container_perf_events_scaling_ratio")
 	assert.Contains(t, names, "container_perf_uncore_events_total")
 	assert.Contains(t, names, "container_perf_uncore_events_scaling_ratio")
+	assert.Contains(t, names, "container_perf_event_errors")
+
 }
 
 func TestNewPrometheusCollectorWithRequestOptions(t *testing.T) {
@@ -141,36 +143,38 @@ func mockLabelFunc(*info.ContainerInfo) map[string]string {
 func TestGetPerCpuCorePerfEvents(t *testing.T) {
 	containerStats := &info.ContainerStats{
 		Timestamp: time.Unix(1395066367, 0),
-		PerfStats: []info.PerfStat{
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 1.0,
-					Value:        123,
-					Name:         "instructions",
+		Perf: info.Perf{
+			PerfStats: []info.PerfStat{
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 1.0,
+						Value:        123,
+						Name:         "instructions",
+					},
+					Cpu: 0,
 				},
-				Cpu: 0,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.5,
-					Value:        456,
-					Name:         "instructions",
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.5,
+						Value:        456,
+						Name:         "instructions",
+					},
+					Cpu: 1,
 				},
-				Cpu: 1,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.7,
-					Value:        321,
-					Name:         "instructions_retired"},
-				Cpu: 0,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.3,
-					Value:        789,
-					Name:         "instructions_retired"},
-				Cpu: 1,
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.7,
+						Value:        321,
+						Name:         "instructions_retired"},
+					Cpu: 0,
+				},
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.3,
+						Value:        789,
+						Name:         "instructions_retired"},
+					Cpu: 1,
+				},
 			},
 		},
 	}
@@ -189,34 +193,36 @@ func TestGetPerCpuCorePerfEvents(t *testing.T) {
 func TestGetPerCpuCoreScalingRatio(t *testing.T) {
 	containerStats := &info.ContainerStats{
 		Timestamp: time.Unix(1395066367, 0),
-		PerfStats: []info.PerfStat{
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 1.0,
-					Value:        123,
-					Name:         "instructions"},
-				Cpu: 0,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.5,
-					Value:        456,
-					Name:         "instructions"},
-				Cpu: 1,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.7,
-					Value:        321,
-					Name:         "instructions_retired"},
-				Cpu: 0,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.3,
-					Value:        789,
-					Name:         "instructions_retired"},
-				Cpu: 1,
+		Perf: info.Perf{
+			PerfStats: []info.PerfStat{
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 1.0,
+						Value:        123,
+						Name:         "instructions"},
+					Cpu: 0,
+				},
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.5,
+						Value:        456,
+						Name:         "instructions"},
+					Cpu: 1,
+				},
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.7,
+						Value:        321,
+						Name:         "instructions_retired"},
+					Cpu: 0,
+				},
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.3,
+						Value:        789,
+						Name:         "instructions_retired"},
+					Cpu: 1,
+				},
 			},
 		},
 	}
@@ -235,34 +241,36 @@ func TestGetPerCpuCoreScalingRatio(t *testing.T) {
 func TestGetAggCorePerfEvents(t *testing.T) {
 	containerStats := &info.ContainerStats{
 		Timestamp: time.Unix(1395066367, 0),
-		PerfStats: []info.PerfStat{
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 1.0,
-					Value:        123,
-					Name:         "instructions"},
-				Cpu: 0,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.5,
-					Value:        456,
-					Name:         "instructions"},
-				Cpu: 1,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.7,
-					Value:        321,
-					Name:         "instructions_retired"},
-				Cpu: 0,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.3,
-					Value:        789,
-					Name:         "instructions_retired"},
-				Cpu: 1,
+		Perf: info.Perf{
+			PerfStats: []info.PerfStat{
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 1.0,
+						Value:        123,
+						Name:         "instructions"},
+					Cpu: 0,
+				},
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.5,
+						Value:        456,
+						Name:         "instructions"},
+					Cpu: 1,
+				},
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.7,
+						Value:        321,
+						Name:         "instructions_retired"},
+					Cpu: 0,
+				},
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.3,
+						Value:        789,
+						Name:         "instructions_retired"},
+					Cpu: 1,
+				},
 			},
 		},
 	}
@@ -279,34 +287,36 @@ func TestGetAggCorePerfEvents(t *testing.T) {
 func TestGetMinCoreScalingRatio(t *testing.T) {
 	containerStats := &info.ContainerStats{
 		Timestamp: time.Unix(1395066367, 0),
-		PerfStats: []info.PerfStat{
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 1.0,
-					Value:        123,
-					Name:         "instructions"},
-				Cpu: 0,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.5,
-					Value:        456,
-					Name:         "instructions"},
-				Cpu: 1,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.7,
-					Value:        321,
-					Name:         "instructions_retired"},
-				Cpu: 0,
-			},
-			{
-				PerfValue: info.PerfValue{
-					ScalingRatio: 0.3,
-					Value:        789,
-					Name:         "instructions_retired"},
-				Cpu: 1,
+		Perf: info.Perf{
+			PerfStats: []info.PerfStat{
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 1.0,
+						Value:        123,
+						Name:         "instructions"},
+					Cpu: 0,
+				},
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.5,
+						Value:        456,
+						Name:         "instructions"},
+					Cpu: 1,
+				},
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.7,
+						Value:        321,
+						Name:         "instructions_retired"},
+					Cpu: 0,
+				},
+				{
+					PerfValue: info.PerfValue{
+						ScalingRatio: 0.3,
+						Value:        789,
+						Name:         "instructions_retired"},
+					Cpu: 1,
+				},
 			},
 		},
 	}

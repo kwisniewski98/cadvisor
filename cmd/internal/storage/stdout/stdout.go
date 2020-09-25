@@ -183,7 +183,7 @@ func (driver *stdoutStorage) hugetlbStatsToValues(series *map[string]uint64, sta
 }
 
 func (driver *stdoutStorage) perfStatsToValues(series *map[string]uint64, stats *info.ContainerStats) {
-	for _, perfStat := range stats.PerfStats {
+	for _, perfStat := range stats.Perf.PerfStats {
 		(*series)[serPerfStat+"."+perfStat.Name+"."+strconv.Itoa(perfStat.Cpu)] = perfStat.Value
 	}
 }

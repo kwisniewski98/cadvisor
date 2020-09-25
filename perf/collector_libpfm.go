@@ -89,7 +89,7 @@ func (c *collector) UpdateStats(stats *info.ContainerStats) error {
 	c.cpuFilesLock.Lock()
 	defer c.cpuFilesLock.Unlock()
 
-	stats.PerfStats = []info.PerfStat{}
+	stats.Perf.PerfStats = []info.PerfStat{}
 	klog.V(5).Infof("Attempting to update perf_event stats from cgroup %q", c.cgroupPath)
 
 	for _, group := range c.cpuFiles {
@@ -100,10 +100,10 @@ func (c *collector) UpdateStats(stats *info.ContainerStats) error {
 				continue
 			}
 
-			stats.PerfStats = append(stats.PerfStats, stat...)
+			stats.Perf.PerfStats = append(stats.Perf.PerfStats, stat...)
 		}
 	}
-
+	stats.Perf.PerfErrors = append(stats.Perf.PerfErrors, c.eventErrors...)
 	return nil
 }
 
@@ -255,10 +255,9 @@ func readPerfEventAttr(name string) (*unix.PerfEventAttr, error) {
 	cSafeName := C.CString(name)
 	pErr := C.pfm_get_os_event_encoding(cSafeName, C.PFM_PLM0|C.PFM_PLM3, C.PFM_OS_PERF_EVENT, unsafe.Pointer(&event))
 	if pErr != C.PFM_SUCCESS {
-		return nil, fmt.Errorf("unable to transform event name %s to perf_event_attr: %d", name, int(pErr))
+		return nil, fmt.Errorf("unable to transform event name %s to perf_event_attr: %d", name, int(pErr)), int(pErr)
 	}
-
-	return (*unix.PerfEventAttr)(perfEventAttrMemory), nil
+	return (*unix.PerfEventAttr)(perfEventAttrMemory), nil, 0
 }
 
 type eventInfo struct {
