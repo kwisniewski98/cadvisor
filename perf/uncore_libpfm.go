@@ -185,7 +185,7 @@ func (c *uncoreCollector) setup(events PerfEvents, devicesPath string) error {
 			return err
 		}
 
-		// CPUs file descriptors of group leader needed for perf_event_open.
+		// CPU file descriptors of group leader needed for perf_event_open.
 		leaderFileDescriptors := make(map[string]map[uint32]int)
 		for _, pmu := range readUncorePMUs {
 			leaderFileDescriptors[pmu.name] = make(map[uint32]int)
@@ -204,7 +204,7 @@ func (c *uncoreCollector) setup(events PerfEvents, devicesPath string) error {
 			}
 
 			if err != nil {
-				klog.Errorf("%v", err)
+				klog.Error(err)
 			}
 		}
 
@@ -377,6 +377,7 @@ func (c *uncoreCollector) setupEvent(name string, pmus uncorePMUs, groupIndex in
 			Action:    "pfm_get_os_event_encoding",
 			ErrorCode: errorCode,
 		})
+
 		return err
 	}
 
@@ -404,7 +405,7 @@ func (c *uncoreCollector) registerEvent(eventInfo eventInfo, pmu pmu, leaderFile
 		groupFd, flags := leaderFileDescriptors[cpu], 0
 		fd, err := c.perfEventOpen(eventInfo.config, eventInfo.pid, int(cpu), groupFd, flags)
 		if err != nil {
-			errorCode, _ := strconv.Atoi(fmt.Sprintf("%s", err))
+			errorCode, _ := strconv.Atoi(err.Error())
 			c.eventErrors = append(c.eventErrors, info.PerfError{
 				EventName: eventInfo.name,
 				Action:    "perf_event_open",

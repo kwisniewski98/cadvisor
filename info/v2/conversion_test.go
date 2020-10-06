@@ -234,6 +234,13 @@ func TestContainerStatsFromV1(t *testing.T) {
 					PMU:    "17",
 				},
 			},
+			PerfErrors: []v1.PerfError{
+				{
+					EventName: "some_event",
+					Action:    "some_action",
+					ErrorCode: 2,
+				},
+			},
 		},
 		ReferencedMemory: uint64(1234),
 		Resctrl: v1.ResctrlStats{
@@ -276,6 +283,7 @@ func TestContainerStatsFromV1(t *testing.T) {
 		Perf: v1.Perf{
 			PerfStats:       v1Stats.Perf.PerfStats,
 			PerfUncoreStats: v1Stats.Perf.PerfUncoreStats,
+			PerfErrors:      v1Stats.Perf.PerfErrors,
 		},
 		ReferencedMemory: v1Stats.ReferencedMemory,
 		Resctrl:          v1Stats.Resctrl,

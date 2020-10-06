@@ -923,6 +923,7 @@ type ProcessStats struct {
 }
 type PerfError struct {
 	EventName string `json:"event_name"`
+	// Action which caused raising an error i.e. opening perf event
 	Action    string `json:"action"`
 	ErrorCode int    `json:"error_code"`
 }
@@ -935,6 +936,7 @@ type Perf struct {
 	// Applies only for root container.
 	PerfUncoreStats []PerfUncoreStat `json:"perf_uncore_stats,omitempty"`
 
+	// List of errors raised by using perf events
 	PerfErrors []PerfError `json:"perf_errors"`
 }
 

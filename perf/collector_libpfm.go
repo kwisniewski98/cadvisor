@@ -193,7 +193,7 @@ func (c *collector) setup() error {
 	c.cpuFilesLock.Lock()
 	defer c.cpuFilesLock.Unlock()
 	cgroupFd := int(cgroup.Fd())
-	i := 0
+	groupIndex := 0
 	for _, group := range c.events.Core.Events {
 		// CPUs file descriptors of group leader needed for perf_event_open.
 		leaderFileDescriptors := make(map[int]int, len(c.onlineCPUs))
@@ -201,12 +201,12 @@ func (c *collector) setup() error {
 			leaderFileDescriptors[cpu] = groupLeaderFileDescriptor
 		}
 
-		leaderFileDescriptors, err := c.createLeaderFileDescriptors(group.events, cgroupFd, i, leaderFileDescriptors)
+		leaderFileDescriptors, err := c.createLeaderFileDescriptors(group.events, cgroupFd, groupIndex, leaderFileDescriptors)
 		if err != nil {
 			klog.Errorf("%v", err)
 			continue
 		} else {
-			i++
+			groupIndex++
 		}
 
 		// Group is prepared so we should reset and enable counting.
@@ -235,17 +235,17 @@ func (c *collector) createLeaderFileDescriptors(events []Event, cgroupFd int, gr
 			config := c.createConfigFromRawEvent(customEvent)
 			leaderFileDescriptors, err = c.registerEvent(eventInfo{string(customEvent.Name), config, cgroupFd, groupIndex, isGroupLeader}, leaderFileDescriptors)
 			if err != nil {
-				return nil, fmt.Errorf("Unable to register perf event %v", err)
+				return nil, fmt.Errorf("unable to register perf event %v", err)
 			}
 		} else {
 			config, err := c.createConfigFromEvent(event)
 			if err != nil {
-				return nil, fmt.Errorf("Unable to create config from perf event %v", err)
+				return nil, fmt.Errorf("unable to create config from perf event %v", err)
 
 			}
 			leaderFileDescriptors, err = c.registerEvent(eventInfo{string(event), config, cgroupFd, groupIndex, isGroupLeader}, leaderFileDescriptors)
 			if err != nil {
-				return nil, fmt.Errorf("Unable to register perf event %v", err)
+				return nil, fmt.Errorf("unable to register perf event %v", err)
 			}
 			// Clean memory allocated by C code.
 			C.free(unsafe.Pointer(config))
@@ -287,13 +287,15 @@ func (c *collector) registerEvent(event eventInfo, leaderFileDescriptors map[int
 		pid = -1
 		flags = unix.PERF_FLAG_FD_CLOEXEC
 	}
-
 	setAttributes(event.config, event.isGroupLeader)
 
 	for _, cpu := range c.onlineCPUs {
 		fd, err := unix.PerfEventOpen(event.config, pid, cpu, leaderFileDescriptors[cpu], flags)
 		if err != nil {
-			errorCode, _ := strconv.Atoi(fmt.Sprintf("%s", err))
+			errorCode, conversionError := strconv.Atoi(err.Error())
+			if conversionError != nil {
+				return leaderFileDescriptors, fmt.Errorf("unable to convert error code returned by PerfEventOpen function: %v", conversionError)
+			}
 			c.eventErrors = append(c.eventErrors, info.PerfError{
 				EventName: event.name,
 				Action:    "perf_event_open",
