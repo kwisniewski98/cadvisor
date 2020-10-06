@@ -1653,23 +1653,6 @@ func NewPrometheusCollector(i infoProvider, f ContainerLabelsFunc, includedMetri
 					return values
 				},
 			},
-			{
-				name:        "container_perf_event_errors",
-				help:        "Perf event errors.",
-				valueType:   prometheus.GaugeValue,
-				extraLabels: []string{"action", "event"},
-				getValues: func(s *info.ContainerStats) metricValues {
-					values := make(metricValues, 0, len(s.Perf.PerfErrors))
-					for _, err := range s.Perf.PerfErrors {
-						values = append(values, metricValue{
-							value:     float64(err.ErrorCode),
-							labels:    []string{err.Action, err.EventName},
-							timestamp: s.Timestamp,
-						})
-					}
-					return values
-				},
-			},
 		}...)
 	}
 	if includedMetrics.Has(container.ReferencedMemoryMetrics) {
@@ -1847,7 +1830,7 @@ func (c *PrometheusCollector) collectContainersInfo(ch chan<- prometheus.Metric)
 			rawLabels[l] = struct{}{}
 		}
 	}
-
+	var perfErrors []info.PerfError
 	for _, cont := range containers {
 		values := make([]string, 0, len(rawLabels))
 		labels := make([]string, 0, len(rawLabels))
@@ -1924,6 +1907,18 @@ func (c *PrometheusCollector) collectContainersInfo(ch chan<- prometheus.Metric)
 				}
 			}
 		}
+		if c.includedMetrics.Has(container.PerfMetrics) {
+			perfErrors = append(perfErrors, cont.Stats[0].Perf.PerfErrors...)
+		}
+	}
+	if c.includedMetrics.Has(container.PerfMetrics) {
+		desc := prometheus.NewDesc("container_perf_event_error_code",
+			"Error code returned by failed perf event action.",
+			[]string{"action", "event"}, nil)
+		for _, err := range getUniquePerfErrors(perfErrors) {
+			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue,
+				float64(err.ErrorCode), err.Action, err.EventName)
+		}
 	}
 }
 
@@ -1935,6 +1930,18 @@ func (c *PrometheusCollector) collectVersionInfo(ch chan<- prometheus.Metric) {
 		return
 	}
 	ch <- prometheus.MustNewConstMetric(versionInfoDesc, prometheus.GaugeValue, 1, []string{versionInfo.KernelVersion, versionInfo.ContainerOsVersion, versionInfo.DockerVersion, versionInfo.CadvisorVersion, versionInfo.CadvisorRevision}...)
+}
+
+func getUniquePerfErrors(errors []info.PerfError) []info.PerfError {
+	keys := make(map[info.PerfError]bool)
+	var unique []info.PerfError
+	for _, err := range errors {
+		if _, value := keys[err]; !value {
+			keys[err] = true
+			unique = append(unique, err)
+		}
+	}
+	return unique
 }
 
 // Size after which we consider memory to be "unlimited". This is not

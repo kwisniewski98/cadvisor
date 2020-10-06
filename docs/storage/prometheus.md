@@ -90,6 +90,7 @@ Metric name | Type | Description | Unit (where applicable) | -disable_metrics pa
 `container_spec_memory_reservation_limit_bytes` | Gauge | Memory reservation limit for the container | bytes | |
 `container_start_time_seconds` | Gauge | Start time of the container since unix epoch | seconds | |
 `container_tasks_state` | Gauge | Number of tasks in given state (`sleeping`, `running`, `stopped`, `uninterruptible`, or `ioawaiting`) | | |
+`container_perf_event_error_code` | Gauge | Error code returned by opening or decoding perf event | | | libpfm
 `container_perf_uncore_events_total` | Counter | Scaled counter of perf uncore event (event can be identified by `event` label, `pmu` and `socket` lables indicate the PMU and the CPU socket for which event was measured). See [perf event configuration](../runtime_options.md#perf-events)). Metric exists only for main cgroup (id="/").| | | libpfm
 `container_perf_uncore_events_scaling_ratio` | Gauge | Scaling ratio for perf uncore event counter (event can be identified by `event` label, `pmu` and `socket` lables indicate the PMU and the CPU socket for which event was measured). See [perf event configuration](../runtime_options.md#perf-events). Metric exists only for main cgroup (id="/"). | | | libpfm
 

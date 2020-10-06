@@ -108,11 +108,10 @@ func (c *collector) UpdateStats(stats *info.ContainerStats) error {
 				klog.Warningf("Unable to read from perf_event_file (event: %q, CPU: %d) for %q: %q", group.leaderName, cpu, c.cgroupPath, err.Error())
 				continue
 			}
-
 			stats.Perf.PerfStats = append(stats.Perf.PerfStats, stat...)
 		}
 	}
-
+	stats.Perf.PerfErrors = append(stats.Perf.PerfErrors, c.eventErrors...)
 	return nil
 }
 
@@ -221,7 +220,6 @@ func (c *collector) setup() error {
 			}
 		}
 	}
-
 	return nil
 }
 
@@ -287,13 +285,15 @@ func (c *collector) registerEvent(event eventInfo, leaderFileDescriptors map[int
 		pid = -1
 		flags = unix.PERF_FLAG_FD_CLOEXEC
 	}
-
 	setAttributes(event.config, event.isGroupLeader)
 
 	for _, cpu := range c.onlineCPUs {
 		fd, err := unix.PerfEventOpen(event.config, pid, cpu, leaderFileDescriptors[cpu], flags)
 		if err != nil {
-			errorCode, _ := strconv.Atoi(fmt.Sprintf("%s", err))
+			errorCode, conversionError := strconv.Atoi(err.Error())
+			if conversionError != nil {
+				return leaderFileDescriptors, fmt.Errorf("unable to convert error code returned by PerfEventOpen function: %v", conversionError)
+			}
 			c.eventErrors = append(c.eventErrors, info.PerfError{
 				EventName: event.name,
 				Action:    "perf_event_open",
