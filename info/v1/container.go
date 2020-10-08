@@ -922,6 +922,15 @@ type ProcessStats struct {
 	Ulimits []UlimitSpec `json:"ulimits,omitempty"`
 }
 
+type Perf struct {
+	// Statistics originating from perf events
+	PerfStats []PerfStat `json:"perf_stats,omitempty"`
+
+	// Statistics originating from perf uncore events.
+	// Applies only for root container.
+	PerfUncoreStats []PerfUncoreStat `json:"perf_uncore_stats,omitempty"`
+}
+
 type ContainerStats struct {
 	// The time of this stat point.
 	Timestamp time.Time               `json:"timestamp"`
@@ -945,12 +954,8 @@ type ContainerStats struct {
 	// Custom metrics from all collectors
 	CustomMetrics map[string][]MetricVal `json:"custom_metrics,omitempty"`
 
-	// Statistics originating from perf events
-	PerfStats []PerfStat `json:"perf_stats,omitempty"`
-
-	// Statistics originating from perf uncore events.
-	// Applies only for root container.
-	PerfUncoreStats []PerfUncoreStat `json:"perf_uncore_stats,omitempty"`
+	// Statistcs for perf core and uncore events
+	Perf Perf `json:"perf,omitempty"`
 
 	// Referenced memory
 	ReferencedMemory uint64 `json:"referenced_memory,omitempty"`

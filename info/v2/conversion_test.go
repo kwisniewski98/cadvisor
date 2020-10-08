@@ -197,40 +197,42 @@ func TestContainerStatsFromV1(t *testing.T) {
 			MemoryUsed:  2030405060,
 			DutyCycle:   12,
 		}},
-		PerfStats: []v1.PerfStat{
-			{
-				PerfValue: v1.PerfValue{
-					ScalingRatio: 1,
-					Value:        123,
-					Name:         "instructions",
+		Perf: v1.Perf{
+			PerfStats: []v1.PerfStat{
+				{
+					PerfValue: v1.PerfValue{
+						ScalingRatio: 1,
+						Value:        123,
+						Name:         "instructions",
+					},
+				},
+				{
+					PerfValue: v1.PerfValue{
+						ScalingRatio: 0.3333333,
+						Value:        123456,
+						Name:         "cycles",
+					},
 				},
 			},
-			{
-				PerfValue: v1.PerfValue{
-					ScalingRatio: 0.3333333,
-					Value:        123456,
-					Name:         "cycles",
+			PerfUncoreStats: []v1.PerfUncoreStat{
+				{
+					PerfValue: v1.PerfValue{
+						ScalingRatio: 1.0,
+						Value:        123456,
+						Name:         "uncore_imc_0/cas_count_write",
+					},
+					Socket: 0,
+					PMU:    "17",
 				},
-			},
-		},
-		PerfUncoreStats: []v1.PerfUncoreStat{
-			{
-				PerfValue: v1.PerfValue{
-					ScalingRatio: 1.0,
-					Value:        123456,
-					Name:         "uncore_imc_0/cas_count_write",
+				{
+					PerfValue: v1.PerfValue{
+						ScalingRatio: 1.0,
+						Value:        654321,
+						Name:         "uncore_imc_0/cas_count_write",
+					},
+					Socket: 1,
+					PMU:    "17",
 				},
-				Socket: 0,
-				PMU:    "17",
-			},
-			{
-				PerfValue: v1.PerfValue{
-					ScalingRatio: 1.0,
-					Value:        654321,
-					Name:         "uncore_imc_0/cas_count_write",
-				},
-				Socket: 1,
-				PMU:    "17",
 			},
 		},
 		ReferencedMemory: uint64(1234),
@@ -270,9 +272,11 @@ func TestContainerStatsFromV1(t *testing.T) {
 			BaseUsageBytes:  &v1Stats.Filesystem[0].BaseUsage,
 			InodeUsage:      &v1Stats.Filesystem[0].Inodes,
 		},
-		Accelerators:     v1Stats.Accelerators,
-		PerfStats:        v1Stats.PerfStats,
-		PerfUncoreStats:  v1Stats.PerfUncoreStats,
+		Accelerators: v1Stats.Accelerators,
+		Perf: v1.Perf{
+			PerfStats:       v1Stats.Perf.PerfStats,
+			PerfUncoreStats: v1Stats.Perf.PerfUncoreStats,
+		},
 		ReferencedMemory: v1Stats.ReferencedMemory,
 		Resctrl:          v1Stats.Resctrl,
 	}

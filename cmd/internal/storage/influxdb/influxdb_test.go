@@ -271,7 +271,7 @@ func TestContainerStatsToPoints(t *testing.T) {
 	assertContainsPointWithValue(t, points, serTxBytes, stats.Network.TxErrors)
 
 	// Perf stats
-	for _, perfStat := range stats.PerfStats {
+	for _, perfStat := range stats.Perf.PerfStats {
 		assertContainsPointWithValue(t, points, serPerfStat, perfStat.Value)
 	}
 
@@ -360,7 +360,13 @@ func createTestStats() (*info.ContainerInfo, *info.ContainerStats) {
 			"2GB": {Usage: 9876, MaxUsage: 5432, Failcnt: 1},
 		},
 		ReferencedMemory: 12345,
-		PerfStats:        []info.PerfStat{{Cpu: 1, Name: "cycles", ScalingRatio: 1.5, Value: 4589}},
+		Perf: info.Perf{
+			PerfStats: []info.PerfStat{{Cpu: 1, PerfValue: info.PerfValue{
+				ScalingRatio: 1.5,
+				Value:        4589,
+				Name:         "cycles",
+			}}},
+		},
 		Resctrl: info.ResctrlStats{
 			MemoryBandwidth: []info.MemoryBandwidthStats{
 				{TotalBytes: 11234, LocalBytes: 4567},
