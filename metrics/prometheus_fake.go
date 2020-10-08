@@ -688,6 +688,18 @@ func (p testSubcontainersInfoProvider) GetRequestedContainersInfo(string, v2.Req
 								PMU:    "uncore_imc_0",
 							},
 						},
+						PerfErrors: []info.PerfError{
+							{
+								EventName: "non_existing_event",
+								Action:    "some_action",
+								ErrorCode: -4,
+							},
+							{
+								EventName: "non_existing_event",
+								Action:    "some_action",
+								ErrorCode: -4,
+							},
+						},
 					},
 					ReferencedMemory: 1234,
 					Resctrl: info.ResctrlStats{

@@ -1830,7 +1830,7 @@ func (c *PrometheusCollector) collectContainersInfo(ch chan<- prometheus.Metric)
 			rawLabels[l] = struct{}{}
 		}
 	}
-
+	var perfErrors []info.PerfError
 	for _, cont := range containers {
 		values := make([]string, 0, len(rawLabels))
 		labels := make([]string, 0, len(rawLabels))
@@ -1907,6 +1907,18 @@ func (c *PrometheusCollector) collectContainersInfo(ch chan<- prometheus.Metric)
 				}
 			}
 		}
+		if c.includedMetrics.Has(container.PerfMetrics) {
+			perfErrors = append(perfErrors, cont.Stats[0].Perf.PerfErrors...)
+		}
+	}
+	if c.includedMetrics.Has(container.PerfMetrics) {
+		desc := prometheus.NewDesc("container_perf_event_error_code",
+			"Error code returned by failed perf event action.",
+			[]string{"action", "event"}, nil)
+		for _, err := range getUniquePerfErrors(perfErrors) {
+			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue,
+				float64(err.ErrorCode), err.Action, err.EventName)
+		}
 	}
 }
 
@@ -1918,6 +1930,18 @@ func (c *PrometheusCollector) collectVersionInfo(ch chan<- prometheus.Metric) {
 		return
 	}
 	ch <- prometheus.MustNewConstMetric(versionInfoDesc, prometheus.GaugeValue, 1, []string{versionInfo.KernelVersion, versionInfo.ContainerOsVersion, versionInfo.DockerVersion, versionInfo.CadvisorVersion, versionInfo.CadvisorRevision}...)
+}
+
+func getUniquePerfErrors(errors []info.PerfError) []info.PerfError {
+	keys := make(map[info.PerfError]bool)
+	var unique []info.PerfError
+	for _, err := range errors {
+		if _, value := keys[err]; !value {
+			keys[err] = true
+			unique = append(unique, err)
+		}
+	}
+	return unique
 }
 
 // Size after which we consider memory to be "unlimited". This is not
